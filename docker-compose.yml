@@ -1,0 +1,54 @@
+version: '3.7'
+services:
+  mysql:
+    build:
+      context: ./mysql
+    container_name: mysql
+    restart: unless-stopped
+    networks:
+      backend: 
+        ipv4_address: 10.0.11.2
+    ports:
+      - 3306:3306
+    env_file:
+      - ./mysql/mysql.config
+    volumes:
+      - ./mysql/insert.sql:/docker-entrypoint-initdb.d/insert.sql
+  php:
+    build:
+       context: ./php
+    container_name: php
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    command: ["php", "-S", "10.0.11.3:8080", "/usr/local/lib/php/index.php"]
+    ports:
+      - 8080:8080
+    networks:
+      backend: 
+        ipv4_address: 10.0.11.3 
+  apache:
+    build:
+      context: ./apache
+    container_name: apache
+    restart: unless-stopped
+    depends_on:
+      - php
+    ports:
+      - 6666:80
+    networks:
+      frontend:
+        ipv4_address: 10.0.12.2
+      backend:
+        ipv4_address: 10.0.11.4 
+networks:
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.12.0/24
+  backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.11.0/24
